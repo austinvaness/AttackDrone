@@ -1,33 +1,19 @@
-﻿using Sandbox.Game.EntityComponents;
-using Sandbox.ModAPI.Ingame;
-using Sandbox.ModAPI.Interfaces;
-using SpaceEngineers.Game.ModAPI.Ingame;
-using System.Collections.Generic;
-using System.Collections;
-using System.Linq;
-using System.Text;
+﻿using Sandbox.ModAPI.Ingame;
 using System;
-using VRage.Collections;
-using VRage.Game.Components;
-using VRage.Game.ModAPI.Ingame;
-using VRage.Game.ModAPI.Ingame.Utilities;
-using VRage.Game.ObjectBuilders.Definitions;
-using VRage.Game;
-using VRageMath;
 
 namespace IngameScript
 {
-    partial class Program
+    public partial class Program
     {
-        public class Clock
+        public static class Clock
         {
-            public int Runtime
+            public static int Runtime
             {
                 get; private set;
             }
-            private readonly double secondsPerTick;
+            private static double secondsPerTick;
 
-            public Clock(UpdateFrequency frequency)
+            public static void Start (UpdateFrequency frequency)
             {
                 Runtime = 0;
                 switch (frequency)
@@ -44,20 +30,20 @@ namespace IngameScript
                 }
             }
 
-            public void Update ()
+            public static void Update ()
             {
                 Runtime++;
                 if (Runtime >= int.MaxValue)
                     Runtime = 0;
             }
 
-            public double GetSeconds (int start)
+            public static double GetSeconds (int start)
             {
                 int diff = Runtime - start;
                 return diff * secondsPerTick;
             }
 
-            public int GetTick (double seconds)
+            public static int GetTick (double seconds)
             {
                 double ticks = seconds / secondsPerTick;
                 int roundedTicks = (int)Math.Ceiling(ticks);

@@ -4,39 +4,54 @@ using System.Linq;
 
 namespace IngameScript
 {
-    partial class Program
+    public partial class Program
     {
-        #region Block Finder
-        T GetBlock<T> (string name = null) where T : class, IMyTerminalBlock
-        {
-            List<T> blocks = new List<T>();
-            if (string.IsNullOrEmpty(name))
-                GridTerminalSystem.GetBlocksOfType(blocks, b => b.CubeGrid.EntityId == Me.CubeGrid.EntityId);
-            else
-                GridTerminalSystem.GetBlocksOfType(blocks, b => b.CubeGrid.EntityId == Me.CubeGrid.EntityId && b.CustomName == name);
-            return blocks.FirstOrDefault();
+        /* Usage:
+                 * gridSystem = GridTerminalSystem;
+                 * gridId = Me.CubeGrid.EntityId;
+                 */
+        static IMyGridTerminalSystem gridSystem;
+        static long gridId;
 
-        }
-        List<T> GetBlocks<T> (string groupName = null) where T : class, IMyTerminalBlock
+        static T GetBlock<T> (string name, bool useSubgrids = false) where T : class, IMyTerminalBlock
         {
-            List<T> blocks;
-            if (string.IsNullOrEmpty(groupName))
+            if (useSubgrids)
             {
-                blocks = new List<T>();
-                GridTerminalSystem.GetBlocksOfType(blocks, b => b.CubeGrid.EntityId == Me.CubeGrid.EntityId);
+                return (T)gridSystem.GetBlockWithName(name);
             }
             else
             {
-                IMyBlockGroup group = GridTerminalSystem.GetBlockGroupWithName(groupName);
-                if (group == null)
-                    return new List<T>(0);
-                blocks = new List<T>();
-                group.GetBlocksOfType(blocks, b => b.CubeGrid.EntityId == Me.CubeGrid.EntityId);
+                List<T> blocks = GetBlocks<T>(false);
+                foreach (T block in blocks)
+                {
+                    if (block.CustomName == name)
+                        return block;
+                }
+                return null;
             }
+        }
+        static T GetBlock<T> (bool useSubgrids = false) where T : class, IMyTerminalBlock
+        {
+            List<T> blocks = GetBlocks<T>(useSubgrids);
+            return blocks.FirstOrDefault();
+        }
+        static List<T> GetBlocks<T> (string groupName, bool useSubgrids = false) where T : class, IMyTerminalBlock
+        {
+            IMyBlockGroup group = gridSystem.GetBlockGroupWithName(groupName);
+            List<T> blocks = new List<T>();
+            group.GetBlocksOfType(blocks);
+            if (!useSubgrids)
+                blocks.RemoveAll(block => block.CubeGrid.EntityId != gridId);
             return blocks;
 
         }
-        #endregion
-
+        static List<T> GetBlocks<T> (bool useSubgrids = false) where T : class, IMyTerminalBlock
+        {
+            List<T> blocks = new List<T>();
+            gridSystem.GetBlocksOfType(blocks);
+            if (!useSubgrids)
+                blocks.RemoveAll(block => block.CubeGrid.EntityId != gridId);
+            return blocks;
+        }
     }
 }

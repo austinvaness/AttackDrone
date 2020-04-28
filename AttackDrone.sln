@@ -5,21 +5,7 @@ VisualStudioVersion = 16.0.29613.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AttackDrone", "AttackDrone.csproj", "{8E3F3BD2-DB08-4524-9743-540DAF1D2449}"
 EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "GyroControl", "..\Mixins\GyroControl\GyroControl\GyroControl.shproj", "{9E7A19F7-673A-48F8-ACE6-07BCB0CFBB8D}"
-EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "PID", "..\Mixins\PID\PID\PID.shproj", "{F72C9C5D-FEFA-4787-9974-12C127CE1B80}"
-EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "ThrustControl3", "..\Mixins\ThrustControl3\ThrustControl3\ThrustControl3.shproj", "{88CB3B7D-0418-475D-804E-12510262C03F}"
-EndProject
 Global
-	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		..\Mixins\ThrustControl3\ThrustControl3\ThrustControl3.projitems*{88cb3b7d-0418-475d-804e-12510262c03f}*SharedItemsImports = 13
-		..\Mixins\GyroControl\GyroControl\GyroControl.projitems*{8e3f3bd2-db08-4524-9743-540daf1d2449}*SharedItemsImports = 4
-		..\Mixins\PID\PID\PID.projitems*{8e3f3bd2-db08-4524-9743-540daf1d2449}*SharedItemsImports = 4
-		..\Mixins\ThrustControl3\ThrustControl3\ThrustControl3.projitems*{8e3f3bd2-db08-4524-9743-540daf1d2449}*SharedItemsImports = 4
-		..\Mixins\GyroControl\GyroControl\GyroControl.projitems*{9e7a19f7-673a-48f8-ace6-07bcb0cfbb8d}*SharedItemsImports = 13
-		..\Mixins\PID\PID\PID.projitems*{f72c9c5d-fefa-4787-9974-12c127ce1b80}*SharedItemsImports = 13
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
 	EndGlobalSection

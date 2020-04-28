@@ -1,50 +1,25 @@
-﻿using Sandbox.Game.EntityComponents;
-using Sandbox.ModAPI.Ingame;
+﻿using Sandbox.ModAPI.Ingame;
 using Sandbox.ModAPI.Interfaces;
-using SpaceEngineers.Game.ModAPI.Ingame;
 using System.Collections.Generic;
-using System.Collections;
-using System.Linq;
-using System.Text;
 using System;
-using VRage.Collections;
-using VRage.Game.Components;
-using VRage.Game.ModAPI.Ingame;
-using VRage.Game.ModAPI.Ingame.Utilities;
-using VRage.Game.ObjectBuilders.Definitions;
-using VRage.Game;
 using VRageMath;
-using VRage;
 
 namespace IngameScript
 {
-    partial class Program : MyGridProgram
+    public partial class Program : MyGridProgram
     {
-        // TODO: 
-        // - Compare to old version, remote commands?
-        // - 
-
         // ============= Settings ==============
         // The number of seconds to keep chasing the target after the ship looses sight
-        readonly double timeout = 10;
+        const double timeout = 10;
 
-        // The name of the group that contains all of the guns on the ship. 
-        // Set to "" to select all guns on the ship.
-        readonly string gunsGroup = "";
+        // Inventory multiplier setting of the world
+        static readonly double inventoryMultiplier = 10;
 
-        // The name of the remote control block.
-        // Set to "" to select the first block on the ship.
-        readonly string rcName = "";
+        // The name of the group that contains all of the guns on the ship.
+        // Set to "_" to select all guns on the ship.
+        readonly string gunsGroup = "_";
 
-        // The name of the group of gyros to use for orienting the ship.
-        // Set to "" to select all gyros on the ship.
-        readonly string gyroGroup = "";
-
-        // The name of the group of turrets to use for detecting enemies.
-        // Set to "" to select all turrets on the ship.
-        readonly string turretGroup = "";
-
-        // This is the max angle in degrees that the ship can be facing relative to the target.
+        // Used when checkFacing is true, this is the max angle in degrees that the ship can be facing relative to the target.
         // This prevents the ship from firing while it is rotating.
         double maxAngle = 20;
 
@@ -53,58 +28,36 @@ namespace IngameScript
         // Not used if the ship is firing rockets.
         const double muzzleVelocity = 400;
 
-        // When the ship is firing rockets, the ship will lead based on the rockets instead of the muzzle velocity. 
+        // When the ship is firing rockets, the ship will lead based on the rockets instead of the muzzle velocity.
         // (Rockets have a more complex flight path)
         // Values: None, LargeGrid, All
-        RocketMode rocketMode = RocketMode.LargeGrid;
-
-        // The time in seconds to wait before starting the script.
-        readonly double startDelay = 0;
-
-        // Minimum orbit radius
-        readonly double minRadius = 400;
-
-        // Maximum orbit radius
-        readonly double maxRadius = 700;
-
-        // The speed to orbit around the target.
-        readonly double orbitVelocity = 20;
-
-        // When gravity is above this value, the orbit pattern will be flat aligned with gravity.
-        readonly double useGravityValue = 0.5;
-
-        // If true, the script will call help when it sees an enemy.
-        readonly bool callHelp = true;
-
-        // If true, the script will respond to calls for help if not busy.
-        readonly bool receiveHelpMsgs = true;
-
-        // The tag to use when calling for help.
-        // Only drones with the same tag will respond to calls.
-        const string helpTag = "Enemy";
-
-        // The script will ignore all help calls outside of this range.
-        const double replyToHelpRange = 4000;
+        readonly RocketMode rocketMode = RocketMode.LargeGrid;
 
         // Whether to return to origin after enemy contact has been lost.
         // If an enemy is detected during navigation, navigation will be stopped.
-        readonly bool returnToOrigin = true;
+        const bool returnToOrigin = true;
 
-        // If the drone is farther than this distance from the origin, it will not attempt to return.
-        // Set to 'double.PositiveInfinity' for the drone to always return.
-        readonly double maxOriginDistance = double.PositiveInfinity;
+        // The time in seconds to wait before starting the script.
+        const double startDelay = 0;
 
-        // Specify a GPS coordinate here to use as the initial drone origin.
-        // If not specified, origin will be set to the current position.
-        readonly string gpsOrigin = "";
+        // The range of the turret used for detection.
+        const double turretRange = 800;
 
-        // This is the frequency that the script is running at. 
-        // Change at your own risk.
-        // Values:
-        // Update1 - Runs the script every tick
-        // Update10 - Runs the script every 10th tick
-        // Update100 - Runs the script every 100th tick
-        readonly UpdateFrequency frequency = UpdateFrequency.Update1;
+        // Orbit settings
+        const double minRadius = 400;
+        const double maxRadius = 700;
+        const double orbitVelocity = 20;
+
+        // When gravity is above this value, the orbit pattern will be flat aligned with gravity.
+        const double useGravityValue = 0.5;
+
+        // Call help settings
+        const bool callHelp = true;
+        const bool receiveHelpMsgs = true;
+
+        // Used to protect commands transmitted via antenna.
+        const string commsId = "drones";
+        const double replyToHelpRange = turretRange * 3;
         // =====================================
 
         // ============= Commands ==============
@@ -114,8 +67,10 @@ namespace IngameScript
         // id;newId - sets a new id on this drone.
         // enemy;x;y;z;vx;vy;vz - position and velocity of the enemy to navigate to.
         // return - navigates to the origin point.
+        // If transmitting via antenna, commands must be prefixed by <password>:
         // =====================================
 
+        const UpdateFrequency frequency = UpdateFrequency.Update1;
         List<IMyLargeTurretBase> turrets;
         Enemy? lastEnemy;
         int contactTime = 0;
@@ -132,9 +87,8 @@ namespace IngameScript
         Vector3D origin;
         List<IMyUserControllableGun> guns;
         readonly List<IMySmallMissileLauncher> rockets = new List<IMySmallMissileLauncher>();
+        const string commsTag = "AttackDrone_" + commsId;
         IMyBroadcastListener helpListener;
-        readonly Clock clock;
-        public static Program prg;
 
         enum RocketMode
         {
@@ -151,58 +105,59 @@ namespace IngameScript
 
         Program ()
         {
-            prg = this;
-            clock = new Clock(frequency);
-            startRuntime = clock.GetTick(startDelay);
+            Clock.Start(frequency);
+            startRuntime = Clock.GetTick(startDelay);
             if (startRuntime == 0)
                 Start();
             Runtime.UpdateFrequency = frequency;
+            //instance = this;
         }
 
         void Start ()
         {
-            turrets = GetBlocks<IMyLargeTurretBase>(turretGroup);
-
-            rc = GetBlock<IMyRemoteControl>(rcName);
+            gridSystem = GridTerminalSystem;
+            gridId = Me.CubeGrid.EntityId;
+            turrets = GetBlocks<IMyLargeTurretBase>(true);
+            rc = GetBlock<IMyRemoteControl>();
             if (rc == null)
                 throw new Exception("Remote control block not found.");
-            
-            gyros = new GyroControl(rc, frequency, GetBlocks<IMyGyro>(gyroGroup));
+            gyros = new GyroControl(rc);
+            origin = rc.GetPosition();
 
-            MyWaypointInfo temp;
-            if (!string.IsNullOrEmpty(gpsOrigin) && MyWaypointInfo.TryParse(gpsOrigin, out temp))
-                origin = temp.Coords;
+            this.guns = new List<IMyUserControllableGun>();
+            List<IMyUserControllableGun> guns;
+            if (gunsGroup == "_")
+                guns = GetBlocks<IMyUserControllableGun>();
             else
-                origin = rc.GetPosition();
-
-            guns = new List<IMyUserControllableGun>();
-            foreach (IMyUserControllableGun g in GetBlocks<IMyUserControllableGun>(gunsGroup))
+                guns = GetBlocks<IMyUserControllableGun>(gunsGroup, true);
+            foreach (IMyUserControllableGun g in guns)
             {
                 if (!(g is IMyLargeTurretBase))
                 {
                     g.SetValueBool("Shoot", false);
-                    IMySmallMissileLauncher m = g as IMySmallMissileLauncher;
-                    if (m != null)
-                        rockets.Add(m);
-                    else
-                        guns.Add(g);
+                    if (rocketMode != RocketMode.None)
+                    {
+                        IMySmallMissileLauncher m = g as IMySmallMissileLauncher;
+                        if (m != null)
+                        {
+                            rockets.Add(m);
+                            continue;
+                        }
+                    }
+                    this.guns.Add(g);
                 }
             }
 
-            if (guns.Count == 0 && rockets.Count > 0)
-                rocketMode = RocketMode.All;
-            if (rockets.Count == 0 && guns.Count > 0)
-                rocketMode = RocketMode.None;
-
-            thrust = new ThrusterControl(rc, frequency, GetBlocks<IMyThrust>(), ThrusterControl.Mode.OnOff);
-            maxAngle *= Math.PI / 180;
-            startRuntime = -1;
-
             if (receiveHelpMsgs)
             {
-                helpListener = IGC.RegisterBroadcastListener(helpTag);
+                helpListener = IGC.RegisterBroadcastListener("AttackDrone_" + commsId);
                 helpListener.SetMessageCallback("");
             }
+                
+
+            thrust = new ThrusterControl(rc);
+            maxAngle *= Math.PI / 180;
+            startRuntime = -1;
         }
 
         void InitializeOrbit ()
@@ -256,6 +211,7 @@ namespace IngameScript
 
         void Detect ()
         {
+
             if (turrets.Count == 0)
             {
                 thrust.Reset();
@@ -275,7 +231,7 @@ namespace IngameScript
                     else if (rocketMode == RocketMode.LargeGrid)
                         useRockets = info.Type == MyDetectedEntityType.LargeGrid;
 
-                    contactTime = clock.Runtime;
+                    contactTime = Clock.Runtime;
                     detected = true;
                     return;
                 }
@@ -288,8 +244,8 @@ namespace IngameScript
             if (updateSource == UpdateType.Update1 || updateSource == UpdateType.Update10 || updateSource == UpdateType.Update100)
             {
                 // Main code
-                clock.Update();
-                if (clock.Runtime == startRuntime)
+                Clock.Update();
+                if (Clock.Runtime == startRuntime)
                 {
                     Echo("Starting.");
                     Start();
@@ -297,7 +253,7 @@ namespace IngameScript
                 else if (startRuntime != -1)
                 {
                     Echo("Waiting to start:");
-                    double sec = startDelay - clock.GetSeconds(0);
+                    double sec = startDelay - Clock.GetSeconds(0);
                     Echo(sec.ToString("0.0") + 's');
                     return;
                 }
@@ -307,8 +263,7 @@ namespace IngameScript
                 Echo("Has target: " + detected);
                 Echo("Known location: " + lastEnemy.HasValue);
                 Echo("Firing: " + fire);
-                Echo($"{useRockets} {guns.Count} {rockets.Count} {rocketMode}");
-                double secSince = clock.GetSeconds(contactTime);
+                double secSince = Clock.GetSeconds(contactTime);
                 if (secSince > 0 && secSince < timeout)
                     Echo("Time since contact: " + secSince.ToString("0.00"));
 
@@ -325,22 +280,27 @@ namespace IngameScript
             }
             else if (updateSource == UpdateType.IGC)
             {
-                if (helpListener.HasPendingMessage && receiveHelpMsgs && !detected && !rc.IsAutoPilotEnabled)
+                if(helpListener != null && receiveHelpMsgs && !detected && helpListener.HasPendingMessage && !rc.IsAutoPilotEnabled)
                 {
-                    MyTuple<Vector3D, Vector3D> pos = (MyTuple<Vector3D, Vector3D>)helpListener.AcceptMessage().Data;
-                    if (Vector3D.Distance(pos.Item1, rc.GetPosition()) > replyToHelpRange)
-                        return;
-
-                    lastEnemy = null;
-                    rc.SetAutoPilotEnabled(false);
-                    rc.ClearWaypoints();
-                    rc.AddWaypoint(new MyWaypointInfo("Enemy", pos.Item1));
-                    rc.SetAutoPilotEnabled(true);
+                    MyIGCMessage msg = helpListener.AcceptMessage();
+                    if(msg.Data is Vector3D)
+                    {
+                        Vector3D pos = (Vector3D)msg.Data;
+                        double dist2 = Vector3D.DistanceSquared(rc.GetPosition(), pos);
+                        if(dist2 < replyToHelpRange * replyToHelpRange)
+                        {
+                            lastEnemy = null;
+                            rc.SetAutoPilotEnabled(false);
+                            rc.ClearWaypoints();
+                            rc.AddWaypoint(new MyWaypointInfo("Enemy", pos));
+                            rc.FlightMode = FlightMode.OneWay;
+                            rc.SetAutoPilotEnabled(true);
+                        }
+                    }
                 }
             }
             else
             {
-                // Remote command
                 Command(argument);
             }
         }
@@ -353,16 +313,19 @@ namespace IngameScript
                 {
                     // Starting to fire
                     InitializeOrbit();
-                    if (callHelp && lastEnemy.HasValue)
-                        IGC.SendBroadcastMessage<MyTuple<Vector3D, Vector3D>>(helpTag, new MyTuple<Vector3D, Vector3D>(lastEnemy.Value.Position, lastEnemy.Value.Velocity));
+                    if (lastEnemy.HasValue)
+                        CallHelp(lastEnemy.Value.Position);
                     foreach (IMyUserControllableGun g in guns)
-                        g.SetValueBool("Shoot", !useRockets);
-                    foreach (IMySmallMissileLauncher m in rockets)
-                        m.SetValueBool("Shoot", useRockets);
+                        g.SetValueBool("Shoot", true);
+                    if (useRockets)
+                    {
+                        foreach (IMySmallMissileLauncher m in rockets)
+                            m.SetValueBool("Shoot", true);
+                    }
                 }
                 else
                 {
-                    // Stopping fire
+                    // Stoping fire
                     foreach (IMyUserControllableGun g in guns)
                         g.SetValueBool("Shoot", false);
                     foreach (IMySmallMissileLauncher m in rockets)
@@ -379,6 +342,8 @@ namespace IngameScript
             if (!lastEnemy.HasValue)
                 return;
 
+            rc.SetAutoPilotEnabled(false);
+
             Vector3D up = new Vector3D();
             if (useGravity)
                 up = Vector3D.Normalize(-rc.GetNaturalGravity());
@@ -386,23 +351,9 @@ namespace IngameScript
             Vector3D myPos = rc.GetPosition();
             if (detected)
             {
-                Vector3D enemyPos = lastEnemy.Value.Position;
-
-                if (returnToOrigin && Vector3D.Distance(enemyPos, myPos) > maxOriginDistance)
-                {
-                    lastEnemy = null;
-                    if (rc.IsAutoPilotEnabled)
-                        return;
-                    thrust.Reset();
-                    gyros.Reset();
-                    ReturnOrigin();
-                    return;
-                }
-
-                rc.SetAutoPilotEnabled(false);
-
                 // Target is in range, no prediction needed
                 Vector3D enemyVel = lastEnemy.Value.Velocity;
+                Vector3D enemyPos = lastEnemy.Value.Position;
                 Echo(enemyPos.ToString());
                 if (useRockets)
                     enemyPos = GetRocketLead(enemyPos, enemyVel);
@@ -414,20 +365,30 @@ namespace IngameScript
 
                 Fire(meToTarget);
 
-
-                Vector3D accel;
+                Vector3D velocity = enemyVel;
                 if (fire)
-                    accel = thrust.ControlPosition(enemyPos + Orbit(), enemyVel);
-                else
-                    accel = thrust.ControlVelocity(enemyVel);
-                thrust.ApplyAccel(accel);
-
+                {
+                    Vector3D target = enemyPos + Orbit();
+                    Vector3D difference = target - myPos;
+                    double diffLen = difference.Length();
+                    Vector3D stop = thrust.StopDistance(1, enemyVel);
+                    double stopLen = stop.Length();
+                    if (!double.IsInfinity(stopLen))
+                    {
+                        if (stopLen > diffLen)
+                            difference = Vector3D.Zero;
+                        else
+                            difference -= stop;
+                    }
+                    velocity += difference;
+                }
+                thrust.Velocity = velocity;
             }
             else
             {
                 // Move towards predicted enemy position
                 fire = false;
-                double sec = clock.GetSeconds(contactTime);
+                double sec = Clock.GetSeconds(contactTime);
                 if (sec > timeout)
                 {
                     lastEnemy = null;
@@ -445,10 +406,28 @@ namespace IngameScript
                     Vector3D meToTarget = Vector3D.Normalize(enemyPos - myPos);
                     gyros.FaceVectors(meToTarget, Vector3D.Zero);
 
-                    thrust.ApplyAccel(thrust.ControlPosition(enemyPos, enemyVel));
+                    Vector3D difference = enemyPos - rc.GetPosition();
+                    double diffLen = difference.Length();
+                    if (diffLen < turretRange)
+                        return;
+
+                    // Compensate for the velocity of the ship so the ship doesn't run into the target
+                    Vector3D stop = thrust.StopDistance(1, enemyVel);
+                    double stopLen = stop.Length();
+                    if (!double.IsInfinity(stopLen))
+                    {
+                        if (stopLen > diffLen)
+                            difference = Vector3D.Zero;
+                        else
+                            difference -= stop;
+                    }
+
+                    Vector3D velocity = enemyVel + difference;
+                    thrust.Velocity = velocity;
                 }
 
             }
+            thrust.Update();
         }
 
         private void Fire (Vector3D targetToMe)
@@ -537,7 +516,7 @@ namespace IngameScript
             return predictedPos - ownVelocity * oldTime;
         }
 
-        // The exact algorithm used by keen's rocket turrets.
+        // A recompilation of keen's turret AI
         // MAYBE if SOMEONE implemented rockets that don't defy the laws of physics this wouldn't be necessary.
         Vector3D GetRocketLead (Vector3D targetPos, Vector3D targetVel)
         {
@@ -552,7 +531,7 @@ namespace IngameScript
             return targetPos - ((num4 / num3) * myVelocity);
         }
 
-        // The exact algorithm used by keen's rocket turrets.
+        // A recompilation of keen's turret AI
         double RocketIntercept (Vector3D deltaPos, Vector3D deltaVel, double projectileVel)
         {
             double num = Vector3D.Dot(deltaVel, deltaVel) - (projectileVel * projectileVel);
@@ -561,6 +540,12 @@ namespace IngameScript
             double d = (num2 * num2) - ((4.0 * num) * num3);
             return (d > 0.0) ? ((2.0 * num3) / (Math.Sqrt(d) - num2)) : -1.0;
         }
-        //
+
+        void CallHelp (Vector3D position)
+        {
+            if (callHelp)
+                IGC.SendBroadcastMessage<Vector3D>(commsTag, position);
+        }
+
     }
 }

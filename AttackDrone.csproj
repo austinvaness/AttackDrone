@@ -38,7 +38,6 @@
   <Import Project="MDK/MDK.options.props" />
   <Import Project="MDK/MDK.paths.props" Condition="exists('MDK/MDK.paths.props')" />
   <ItemGroup>
-    <Compile Include="BlockFinder.cs" />
     <Compile Include="MDK\Bootstrapper.cs" />
     <AdditionalFiles Include="MDK\MDK.options.props">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -46,15 +45,18 @@
     <AdditionalFiles Include="MDK\MDK.paths.props">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </AdditionalFiles>
+    <Compile Include="BlockFinder.cs" />
+    <Compile Include="Clock.cs" />
     <Compile Include="Program.cs" />
     <AdditionalFiles Include="thumb.png" />
     <AdditionalFiles Include="MDK\whitelist.cache" />
     <Compile Include="Enemy.cs" />
-    <Compile Include="Clock.cs" />
+    <Compile Include="GyroControl.cs" />
+    <Compile Include="PID.cs" />
+    <Compile Include="Scheduler.cs" />
+    <Compile Include="ThrusterControl.cs" />
+    <Compile Include="VectorPID.cs" />
   </ItemGroup>
-  <Import Project="..\Mixins\GyroControl\GyroControl\GyroControl.projitems" Label="Shared" />
-  <Import Project="..\Mixins\PID\PID\PID.projitems" Label="Shared" />
-  <Import Project="..\Mixins\ThrustControl3\ThrustControl3\ThrustControl3.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="AfterBuild">
     <Copy SourceFiles="MDK\MDK.options.props" DestinationFolder="$(TargetDir)\MDK" />
