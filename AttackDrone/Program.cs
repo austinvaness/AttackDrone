@@ -69,6 +69,9 @@ namespace IngameScript
 
         // If true, the script will be able to see blocks attached to subgrids. (rotors, pistons)
         const bool useSubgrids = true;
+
+        // The maximum speed the ship can move, or "double.PositiveInfinity" for no limit.
+        readonly double maxSpeed = double.PositiveInfinity;
         // =====================================
 
         // ============= Commands ==============
@@ -100,6 +103,7 @@ namespace IngameScript
         readonly List<IMySmallMissileLauncher> rockets = new List<IMySmallMissileLauncher>();
         const string commsTag = "AttackDrone_" + commsId;
         IMyBroadcastListener helpListener;
+        readonly double maxSpeed2;
 
         enum RocketMode
         {
@@ -121,7 +125,7 @@ namespace IngameScript
             if (startRuntime == 0)
                 Start();
             Runtime.UpdateFrequency = frequency;
-            //instance = this;
+            maxSpeed2 = maxSpeed * maxSpeed;
         }
 
         void Start ()
@@ -440,6 +444,12 @@ namespace IngameScript
                     }
 
                     Vector3D velocity = enemyVel + difference;
+                    if(!double.IsInfinity(maxSpeed))
+                    {
+                        double speed2 = velocity.LengthSquared();
+                        if (speed2 > maxSpeed2)
+                            velocity = (velocity / Math.Sqrt(speed2)) * maxSpeed;
+                    }
                     thrust.Velocity = velocity;
                 }
 
