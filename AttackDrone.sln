@@ -1,22 +1,26 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
-VisualStudioVersion = 16.0.29613.14
+VisualStudioVersion = 16.0.30104.148
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AttackDrone", "AttackDrone.csproj", "{8E3F3BD2-DB08-4524-9743-540DAF1D2449}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AttackDrone", "AttackDrone\AttackDrone.csproj", "{708D0E3B-0037-494B-8E23-6C2A190CFE0E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AttackDroneSimple", "AttackDroneSimple\AttackDroneSimple.csproj", "{88C21085-026A-41E9-903E-5AC1780345DD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{8E3F3BD2-DB08-4524-9743-540DAF1D2449}.Debug|x64.ActiveCfg = Debug|x64
-		{8E3F3BD2-DB08-4524-9743-540DAF1D2449}.Debug|x64.Build.0 = Debug|x64
+		{708D0E3B-0037-494B-8E23-6C2A190CFE0E}.Debug|x64.ActiveCfg = Debug|x64
+		{708D0E3B-0037-494B-8E23-6C2A190CFE0E}.Debug|x64.Build.0 = Debug|x64
+		{88C21085-026A-41E9-903E-5AC1780345DD}.Debug|x64.ActiveCfg = Debug|x64
+		{88C21085-026A-41E9-903E-5AC1780345DD}.Debug|x64.Build.0 = Debug|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {45DBA7E6-0DBC-4D16-BB6D-CDA162288589}
+		SolutionGuid = {BF6A7B86-DCEC-4866-8829-131C16D9C92A}
 	EndGlobalSection
 EndGlobal
