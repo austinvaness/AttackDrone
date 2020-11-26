@@ -37,6 +37,9 @@ namespace IngameScript
         }
         static List<T> GetBlocks<T> (string groupName, bool useSubgrids = false) where T : class, IMyTerminalBlock
         {
+            if (string.IsNullOrWhiteSpace(groupName))
+                return GetBlocks<T>(useSubgrids);
+
             IMyBlockGroup group = gridSystem.GetBlockGroupWithName(groupName);
             List<T> blocks = new List<T>();
             group.GetBlocksOfType(blocks);

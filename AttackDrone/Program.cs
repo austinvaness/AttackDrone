@@ -3,6 +3,7 @@ using Sandbox.ModAPI.Interfaces;
 using System.Collections.Generic;
 using System;
 using VRageMath;
+using System.Linq;
 
 namespace IngameScript
 {
@@ -67,6 +68,10 @@ namespace IngameScript
         // Leave black to have the script use a random remote control block on the ship.
         const string rcName = "";
 
+        // The name of the group of thrusters.
+        // Leave black to have the script use all the thrusters on the ship.
+        const string thrustGroup = "";
+
         // If true, the script will be able to see blocks attached to subgrids. (rotors, pistons)
         const bool useSubgrids = true;
 
@@ -86,6 +91,7 @@ namespace IngameScript
 
         const UpdateFrequency frequency = UpdateFrequency.Update1;
         List<IMyLargeTurretBase> turrets;
+        WcPbApi wcTurrets;
         Enemy? lastEnemy;
         int contactTime = 0;
         IMyRemoteControl rc;
@@ -104,6 +110,8 @@ namespace IngameScript
         const string commsTag = "AttackDrone_" + commsId;
         IMyBroadcastListener helpListener;
         readonly double maxSpeed2;
+
+        readonly Dictionary<MyDetectedEntityInfo, float> threatsTemp = new Dictionary<MyDetectedEntityInfo, float>();
 
         enum RocketMode
         {
@@ -132,10 +140,19 @@ namespace IngameScript
         {
             gridSystem = GridTerminalSystem;
             gridId = Me.CubeGrid.EntityId;
-            if (string.IsNullOrWhiteSpace(turretGroup))
-                turrets = GetBlocks<IMyLargeTurretBase>(useSubgrids);
-            else
-                turrets = GetBlocks<IMyLargeTurretBase>(turretGroup, useSubgrids);
+            turrets = GetBlocks<IMyLargeTurretBase>(turretGroup, useSubgrids);
+
+            wcTurrets = new WcPbApi();
+            try
+            {
+                if (!wcTurrets.Activate(Me))
+                    wcTurrets = null;
+            }
+            catch 
+            {
+                wcTurrets = null;
+            }
+
             if (string.IsNullOrWhiteSpace(rcName))
                 rc = GetBlock<IMyRemoteControl>();
             else
@@ -146,11 +163,7 @@ namespace IngameScript
             origin = rc.GetPosition();
 
             this.guns = new List<IMyUserControllableGun>();
-            List<IMyUserControllableGun> guns;
-            if (gunsGroup == "_" || string.IsNullOrWhiteSpace(gunsGroup))
-                guns = GetBlocks<IMyUserControllableGun>(useSubgrids);
-            else
-                guns = GetBlocks<IMyUserControllableGun>(gunsGroup, useSubgrids);
+            List<IMyUserControllableGun> guns = GetBlocks<IMyUserControllableGun>(gunsGroup, useSubgrids);
             foreach (IMyUserControllableGun g in guns)
             {
                 if (!(g is IMyLargeTurretBase))
@@ -174,9 +187,9 @@ namespace IngameScript
                 helpListener = IGC.RegisterBroadcastListener("AttackDrone_" + commsId);
                 helpListener.SetMessageCallback("");
             }
-                
 
-            thrust = new ThrusterControl(rc);
+
+            thrust = new ThrusterControl(rc, GetBlocks<IMyThrust>(thrustGroup));
             maxAngle *= Math.PI / 180;
             startRuntime = -1;
         }
@@ -232,8 +245,17 @@ namespace IngameScript
 
         void Detect ()
         {
-
-            if (turrets.Count == 0)
+            if (wcTurrets != null)
+            {
+                threatsTemp.Clear();
+                wcTurrets.GetSortedThreats(Me, threatsTemp);
+                if(threatsTemp.Count > 0)
+                {
+                    SetEnemy(threatsTemp.Keys.First());
+                    return;
+                }
+            }
+            else if (turrets.Count == 0)
             {
                 thrust.Reset();
                 gyros.Reset();
@@ -244,20 +266,22 @@ namespace IngameScript
             {
                 if (t.HasTarget)
                 {
-                    MyDetectedEntityInfo info = t.GetTargetedEntity();
-                    lastEnemy = new Enemy(info);
-
-                    if (rocketMode == RocketMode.All)
-                        useRockets = true;
-                    else if (rocketMode == RocketMode.LargeGrid)
-                        useRockets = info.Type == MyDetectedEntityType.LargeGrid;
-
-                    contactTime = Clock.Runtime;
-                    detected = true;
+                    SetEnemy(t.GetTargetedEntity());
                     return;
                 }
             }
             detected = false;
+        }
+
+        private void SetEnemy(MyDetectedEntityInfo info)
+        {
+            lastEnemy = new Enemy(info);
+            if (rocketMode == RocketMode.All)
+                useRockets = true;
+            else if (rocketMode == RocketMode.LargeGrid)
+                useRockets = info.Type == MyDetectedEntityType.LargeGrid;
+            contactTime = Clock.Runtime;
+            detected = true;
         }
 
         void Main (string argument, UpdateType updateSource)

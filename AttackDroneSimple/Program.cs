@@ -69,6 +69,8 @@ namespace IngameScript
         Vector3D origin;
         const string commsTag = "AttackDrone_" + commsId;
         IMyBroadcastListener helpListener;
+        WcPbApi wcTurrets;
+        readonly Dictionary<MyDetectedEntityInfo, float> threatsTemp = new Dictionary<MyDetectedEntityInfo, float>();
 
         enum RocketMode
         {
@@ -93,6 +95,7 @@ namespace IngameScript
                 turrets = GetBlocks<IMyLargeTurretBase>(useSubgrids);
             else
                 turrets = GetBlocks<IMyLargeTurretBase>(turretGroup, useSubgrids);
+            wcTurrets = new WcPbApi();
             if (string.IsNullOrWhiteSpace(rcName))
                 rc = GetBlock<IMyRemoteControl>();
             else
@@ -108,11 +111,23 @@ namespace IngameScript
             }
 
             startRuntime = -1;
+
         }
 
         void Detect ()
         {
-            if (turrets.Count == 0)
+
+            if (wcTurrets != null)
+            {
+                threatsTemp.Clear();
+                wcTurrets.GetSortedThreats(Me, threatsTemp);
+                if (threatsTemp.Count > 0)
+                {
+                    SetEnemy(threatsTemp.Keys.First());
+                    return;
+                }
+            }
+            else if (turrets.Count == 0)
             {
                 Stop();
                 throw new Exception("No turrets remain for detection.");
@@ -122,16 +137,20 @@ namespace IngameScript
             {
                 if (t.HasTarget)
                 {
-                    MyDetectedEntityInfo info = t.GetTargetedEntity();
-                    lastEnemy = new Enemy(info);
-                    contactTime = Clock.Runtime;
-                    if (!detected && callHelp)
-                        IGC.SendBroadcastMessage<Vector3D>(commsTag, info.Position);
-                    detected = true;
+                    SetEnemy(t.GetTargetedEntity());
                     return;
                 }
             }
             detected = false;
+        }
+
+        private void SetEnemy(MyDetectedEntityInfo info)
+        {
+            lastEnemy = new Enemy(info);
+            contactTime = Clock.Runtime;
+            if (!detected && callHelp)
+                IGC.SendBroadcastMessage<Vector3D>(commsTag, info.Position);
+            detected = true;
         }
 
         private void GoTo(Vector3D pos, string label)

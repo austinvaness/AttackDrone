@@ -7,7 +7,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AttackDrone", "AttackDrone\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AttackDroneSimple", "AttackDroneSimple\AttackDroneSimple.csproj", "{88C21085-026A-41E9-903E-5AC1780345DD}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "WCSupport", "WCSupport\WCSupport.shproj", "{AB796356-1654-4F71-9220-7527BF156A96}"
+EndProject
 Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		WCSupport\WCSupport.projitems*{708d0e3b-0037-494b-8e23-6c2a190cfe0e}*SharedItemsImports = 4
+		WCSupport\WCSupport.projitems*{88c21085-026a-41e9-903e-5ac1780345dd}*SharedItemsImports = 4
+		WCSupport\WCSupport.projitems*{ab796356-1654-4f71-9220-7527bf156a96}*SharedItemsImports = 13
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
 	EndGlobalSection

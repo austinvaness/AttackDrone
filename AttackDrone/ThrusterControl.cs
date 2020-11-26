@@ -32,10 +32,10 @@ namespace IngameScript
                 }
             }
 
-            public ThrusterControl (IMyShipController rc)
+            public ThrusterControl (IMyShipController rc, List<IMyThrust> thrusters)
             {
                 this.rc = rc;
-                thrusters = GetBlocks<IMyThrust>();
+                this.thrusters = thrusters;
                 Reset();
             }
 
