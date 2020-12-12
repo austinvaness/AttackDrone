@@ -83,10 +83,7 @@ namespace IngameScript
         // stop - stops the script and releases control to you
         // start - starts the script after a stop command
         // origin;x;y;z - set the origin to a specific coordinate and navigate to it.
-        // id;newId - sets a new id on this drone.
-        // enemy;x;y;z;vx;vy;vz - position and velocity of the enemy to navigate to.
         // return - navigates to the origin point.
-        // If transmitting via antenna, commands must be prefixed by <password>:
         // =====================================
 
         const UpdateFrequency frequency = UpdateFrequency.Update1;
